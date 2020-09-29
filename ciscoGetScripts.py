@@ -84,7 +84,8 @@ class Configuration_Import(Frame):
         secret=self.secr.get()
         for ip in self.listItem.get():
             self.DeviceObjects.append(Devices(username,password,secret,ip))
-        CommandExecution(self.DeviceObjects[0])
+        for DeviceObj in self.DeviceObjects:
+            CommandExecution(DeviceObj)
 
 
     def load_file(self):
@@ -116,21 +117,25 @@ class Devices():
 
 class CommandExecution():
     def __init__(self,DeviceObject):
-        self.command="show ip int brief"
+        self.command=["show ip int brief","show cdp n","show switch","show arp detail | include ARP entry"]
         self.ipA=DeviceObject.ip
-        cisco1={"device_type":"cisco_ios",
+        self.cisco1={"device_type":"cisco_ios",
                 "host":DeviceObject.ip,
                 "username":DeviceObject.username,
                 "password":DeviceObject.passw,
 
         }
-        self.Connection(cisco1)
+        self.commandsToRun()
 
-    def Connection(self,cisco1):
+    def commandsToRun(self):
+        for i in self.command:
+            self.Connection(self.cisco1,i)
+
+    def Connection(self,cisco1,command):
         with ConnectHandler(**cisco1) as net_connect:
-            output = net_connect.send_command(self.command)
+            output = net_connect.send_command(command)
         print(output)
-        self.writeToFile(self.command,output)
+        self.writeToFile(command.replace("|","-"),output)
 
     def writeToFile(self,command,output):
         fileWritting = open(self.ipA+"_"+command,"w")
@@ -140,4 +145,3 @@ class CommandExecution():
 
 if __name__ == "__main__":
     Configuration_Import().mainloop()
-   
