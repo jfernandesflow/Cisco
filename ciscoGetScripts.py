@@ -15,12 +15,13 @@ class Configuration_Import(Frame):
         self.ipAdd=[]
         self.DeviceObjects=[]
 
+#-------------------START OFF TKINTER WIDGET---------------------------------------------
     def Frame_Variables(self):
         #Frame Setup
         self.master.title("Config_Grabber")
         self.master.rowconfigure(0, weight=1)
         self.master.columnconfigure(0, weight=1)
-        self.master.geometry("500x200")
+        self.master.geometry("400x400")
         self.grid(sticky=W + E + N + S)
 
         #Frame stringVariable access
@@ -73,14 +74,17 @@ class Configuration_Import(Frame):
         #Call function to read contents from file and place in listbox
         self.read_contents_file(file)
 
+#--------------------END OFF TKINTER Widget-----------------------------------------
+
+
+    #Execution of commands
     def executeCom(self):
         username=self.user.get()
         password=self.password.get()
         secret=self.secr.get()
         for ip in self.listItem.get():
             self.DeviceObjects.append(Devices(username,password,secret,ip))
-        print("sf")
-        print(self.DeviceObjects[1].ip)
+        CommandExecution(self.DeviceObjects[0])
 
 
     def load_file(self):
@@ -111,15 +115,29 @@ class Devices():
         self.outputFile="Output/"+(self.ip).replace(".","_")+".log"
 
 class CommandExecution():
-    def __init__(self,):
-        print()
+    def __init__(self,DeviceObject):
+        self.command="show ip int brief"
+        self.ipA=DeviceObject.ip
+        cisco1={"device_type":"cisco_ios",
+                "host":DeviceObject.ip,
+                "username":DeviceObject.username,
+                "password":DeviceObject.passw,
 
-    def Connection(self):
-        net_connect = ConnectHandler(**devices)
-        net_connect.enable()
+        }
+        self.Connection(cisco1)
 
+    def Connection(self,cisco1):
+        with ConnectHandler(**cisco1) as net_connect:
+            output = net_connect.send_command(self.command)
+        print(output)
+        self.writeToFile(self.command,output)
+
+    def writeToFile(self,command,output):
+        fileWritting = open(self.ipA+"_"+command,"w")
+        fileWritting.write(output)
+        fileWritting.close()
 
 
 if __name__ == "__main__":
     Configuration_Import().mainloop()
-    #print(Devices("jamie","test","cisco","192.168.0.1").outputFile)#
+   
