@@ -1,7 +1,7 @@
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showerror
-
+import os
 from netmiko import ConnectHandler
 
 
@@ -74,19 +74,6 @@ class Configuration_Import(Frame):
         #Call function to read contents from file and place in listbox
         self.read_contents_file(file)
 
-#--------------------END OFF TKINTER Widget-----------------------------------------
-
-
-    #Execution of commands
-    def executeCom(self):
-        username=self.user.get()
-        password=self.password.get()
-        secret=self.secr.get()
-        for ip in self.listItem.get():
-            self.DeviceObjects.append(Devices(username,password,secret,ip))
-        CommandExecution(self.DeviceObjects[0])
-
-
     def load_file(self):
         fname = askopenfilename(filetypes=(("IP Address Files", "*.ipf"),
                                    ("Commands", "*.cmd;*.com"),
@@ -105,6 +92,23 @@ class Configuration_Import(Frame):
             self.ipAdd.append(ipAd)
 
 
+#--------------------END OFF TKINTER Widget-----------------------------------------
+
+
+    #Execution of commands
+    def executeCom(self):
+        username=self.user.get()
+        password=self.password.get()
+        secret=self.secr.get()
+        for ip in self.listItem.get():
+            self.DeviceObjects.append(Devices(username,password,secret,ip))
+        for DeviceObj in self.DeviceObjects:
+            CommandExecution(DeviceObj)
+
+
+
+
+
 
 class Devices():
     def __init__(self,username,passw,secr,ip):
@@ -116,28 +120,32 @@ class Devices():
 
 class CommandExecution():
     def __init__(self,DeviceObject):
-        self.command="show ip int brief"
+        self.commands=["show ip int brief", "show cdp n", "show switch", "show version", "show vlan","show spann"] #show arp detail | include ARP entry
         self.ipA=DeviceObject.ip
-        cisco1={"device_type":"cisco_ios",
+        self.cisco1={"device_type":"cisco_ios",
                 "host":DeviceObject.ip,
                 "username":DeviceObject.username,
                 "password":DeviceObject.passw,
 
         }
-        self.Connection(cisco1)
+        self.commandsToRun()
 
-    def Connection(self,cisco1):
+    def commandsToRun(self):
+        for command in self.commands:
+            self.Connection(self.cisco1,command)
+
+    def Connection(self,cisco1,command):
         with ConnectHandler(**cisco1) as net_connect:
-            output = net_connect.send_command(self.command)
+            output = net_connect.send_command(command)
+        print(command)
         print(output)
-        self.writeToFile(self.command,output)
+        self.writeToFile(command.replace("|","-"),output)
 
     def writeToFile(self,command,output):
-        fileWritting = open(self.ipA+"_"+command,"w")
+        fileWritting = open(self.ipA+"_"+command+".log","w")
         fileWritting.write(output)
         fileWritting.close()
 
 
 if __name__ == "__main__":
     Configuration_Import().mainloop()
-   
